@@ -14,23 +14,29 @@ pipeline {
             steps {
                 script {
                     echo "building jar"
-                    //gv.buildJar()
+                    gv.buildJar()
                 }
             }
         }
         stage("build image") {
             steps {
                 script {
-                    echo "building image"
-                    //gv.buildImage()
+                    echo "building docker image"
+                    buildImage(env.IMAGE_NAME)
+                    dockerLogin()
+                    dockerPush(env.IMAGE_NAME)
                 }
             }
         }
         stage("deploy") {
             steps {
                 script {
-                    echo "deploying"
-                    //gv.deployApp()
+                    echo "deploying docker image to EC2"
+                    def dockerComposeCmd = "docker-compose -f docker-compose.yaml --detach"
+                    sshagent(['ec2-server-key']) {
+                        sh "scp docker-compose.yaml ec2-user@3.68.230.224:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@3.68.230.224 ${dockerComposeCmd}"
+                    }
                 }
             }
         }
